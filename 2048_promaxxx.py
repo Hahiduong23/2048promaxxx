@@ -207,12 +207,34 @@ class Game2048HardMode(Game2048):
     def update_grid_ui(self):
         super().update_grid_ui()
 
-    # Ghi đè phương thức add_new_tile cho chế độ khó
+    # Ghi đè phương thức add_new_tile với tỷ lệ 50% cho 2, 25% cho 4, 25% cho 8
+    def add_new_tile(self):
+        empty_cells = [(i, j) for i in range(4) for j in range(4) if self._board.get_grid_values()[i][j] == 0]
+        if empty_cells:
+            i, j = random.choice(empty_cells)
+            # Xác suất 50% cho 2, 25% cho 4, 25% cho 8
+            new_value = random.choices([2, 4, 8], weights=[50, 25, 25])[0]
+            self._board._Board__grid[i][j].set_value(new_value)
+    
     def key_pressed(self, event):
-        super().key_pressed(event)
-
-    def get_color(self, value):
-        return super().get_color(value)
+        if event.keysym == 'Up':
+            changed = self._board.move_up()
+        elif event.keysym == 'Down':
+            changed = self._board.move_down()
+        elif event.keysym == 'Left':
+            changed = self._board.move_left()
+        elif event.keysym == 'Right':
+            changed = self._board.move_right()
+        else:
+            return
+        if changed:
+            self.add_new_tile()  # Gọi phương thức add_new_tile đã được ghi đè cho chế độ khó
+        self.update_grid_ui()
+        state = self._board.check_state()
+        if state == 'WON':
+            self.show_game_over("Chúc mừng! Bạn đã thắng!")
+        elif state == 'LOST':
+            self.show_game_over("Game Over! Bạn đã thua!")
 
 # Lớp Menu chọn chế độ chơi
 class ModeSelection:
