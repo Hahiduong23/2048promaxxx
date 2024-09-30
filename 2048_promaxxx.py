@@ -196,10 +196,11 @@ class Game2048:
         else:
             self._root.quit()
 
-# Lớp Game2048HardMode kế thừa từ Game2048, ghi đè phương thức add_new_tile
-class Game2048HardMode(Game2048):
+# Lớp Game2048EasyMode kế thừa từ Game2048, ghi đè phương thức start_game
+class Game2048EasyMode(Game2048):
     def __init__(self, root):
         super().__init__(root)
+        self.start_game()  # Khởi động trò chơi ngay khi khởi tạo
 
     def create_widgets(self):
         super().create_widgets()
@@ -207,15 +208,25 @@ class Game2048HardMode(Game2048):
     def update_grid_ui(self):
         super().update_grid_ui()
 
-    # Ghi đè phương thức add_new_tile với tỷ lệ 50% cho 2, 25% cho 4, 25% cho 8
+    # Phương thức khởi động trò chơi, chỉ tạo 1 ô có giá trị 4
+    def start_game(self):
+        # Reset bảng nhưng không thêm bất kỳ ô mới nào sau khi reset
+        self._board._Board__grid = [[Tile() for _ in range(4)] for _ in range(4)]
+        # Đặt một ô đầu tiên với giá trị là 4
+        empty_cells = [(i, j) for i in range(4) for j in range(4)]
+        if empty_cells:
+            i, j = random.choice(empty_cells)
+            self._board._Board__grid[i][j].set_value(4)  # Đặt ô đầu tiên là 4
+        self.update_grid_ui()  # Cập nhật giao diện
+
     def add_new_tile(self):
         empty_cells = [(i, j) for i in range(4) for j in range(4) if self._board.get_grid_values()[i][j] == 0]
         if empty_cells:
             i, j = random.choice(empty_cells)
-            # Xác suất 50% cho 2, 25% cho 4, 25% cho 8
-            new_value = random.choices([2, 4, 8], weights=[50, 25, 25])[0]
+            # Xác suất 50% cho 4 và 50% cho 8
+            new_value = random.choices([4, 8], weights=[50, 50])[0]
             self._board._Board__grid[i][j].set_value(new_value)
-    
+
     def key_pressed(self, event):
         if event.keysym == 'Up':
             changed = self._board.move_up()
@@ -228,13 +239,14 @@ class Game2048HardMode(Game2048):
         else:
             return
         if changed:
-            self.add_new_tile()  # Gọi phương thức add_new_tile đã được ghi đè cho chế độ khó
+            self.add_new_tile()  # Gọi phương thức add_new_tile đã được ghi đè cho chế độ dễ
         self.update_grid_ui()
         state = self._board.check_state()
         if state == 'WON':
             self.show_game_over("Chúc mừng! Bạn đã thắng!")
         elif state == 'LOST':
             self.show_game_over("Game Over! Bạn đã thua!")
+
 
 # Lớp Menu chọn chế độ chơi
 class ModeSelection:
@@ -248,11 +260,11 @@ class ModeSelection:
         label = tk.Label(self._root, text="Chọn chế độ chơi:", font=('Arial', 16))
         label.pack(pady=20)
 
-        normal_button = tk.Button(self._root, text="Normol Mode", font=('Arial', 14), command=self.start_normal_mode)
+        normal_button = tk.Button(self._root, text="Normal Mode", font=('Arial', 14), command=self.start_normal_mode)
         normal_button.pack(pady=10)
 
-        hard_button = tk.Button(self._root, text="Hard Mode", font=('Arial', 14), command=self.start_hard_mode)
-        hard_button.pack(pady=10)
+        easy_button = tk.Button(self._root, text="Easy Mode", font=('Arial', 14), command=self.start_easy_mode)
+        easy_button.pack(pady=10)
 
     def start_normal_mode(self):
         self._root.destroy()  # Đóng cửa sổ menu
@@ -260,10 +272,10 @@ class ModeSelection:
         game = Game2048(root)
         root.mainloop()
 
-    def start_hard_mode(self):
+    def start_easy_mode(self):
         self._root.destroy()  # Đóng cửa sổ menu
         root = tk.Tk()
-        game = Game2048HardMode(root)
+        game = Game2048EasyMode(root)
         root.mainloop()
 
 # Khởi động menu chọn chế độ chơi
