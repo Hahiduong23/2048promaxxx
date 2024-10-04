@@ -260,17 +260,6 @@ class Game2048EasyMode(Game2048):
         elif state == 'LOST':
             self.show_game_over("Game Over! Bạn đã thua!")  # Thông báo thua
 
-    def show_game_over(self, message):
-        replay = messagebox.askyesno("2048", f"{message}\nBạn có muốn chơi lại không?")
-        if replay:
-            self._board.reset()
-            self.update_grid_ui()
-        else:
-            self._root.destroy()  # Đóng cửa sổ trò chơi hiện tại
-            root = tk.Tk()  # Tạo lại cửa sổ root
-            menu = ModeSelection(root)  # Gọi lại menu chọn chế độ chơi
-            root.mainloop()
-
 class Game2048CompetitionMode(Game2048):
     def __init__(self, root):
         super().__init__(root)
