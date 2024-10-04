@@ -1,28 +1,11 @@
 import tkinter as tk
 import random
 from tkinter import messagebox
-from abc import ABC, abstractmethod
 
-class GameMode(ABC):
-    def __init__(self,root):
-        self._root = root
-        self._board = Board()
-    @abstractmethod
-    def key_pressed(self, event):
-        pass
-    def start_game(self):
-        pass
-    def show_game_over(self, message):
-        replay = messagebox.askeysno('2048', f'{message}\n Chơi lại 0?')
-        if replay:
-            self._board.reset()
-            self.update_grid_ui()
-        else:
-            self._root.quit()
 # Lớp Tile đại diện cho từng ô trên bảng
 class Tile:
     def __init__(self, value=0):
-        self.__value = value 
+        self.__value = value  # Private attribute
 
     def set_value(self, value):
         self.__value = value
@@ -33,8 +16,8 @@ class Tile:
 # Lớp Board xử lý các thao tác trên bảng 2048
 class Board:
     def __init__(self):
-        self.__grid = [[Tile() for _ in range(4)] for _ in range(4)]
-        self.__best_score = 0  
+        self.__grid = [[Tile() for _ in range(4)] for _ in range(4)]  # Private grid
+        self.__best_score = 0  # Điểm số cao nhất
         self.add_new_tile()
         self.add_new_tile()
 
@@ -70,6 +53,7 @@ class Board:
                     self.__grid[i][j].set_value(new_value)
                     self.__grid[i][j + 1].set_value(0)
                     changed = True
+                    # Cập nhật best_score nếu ô này có giá trị lớn hơn
                     if new_value > self.__best_score:
                         self.__best_score = new_value
         return changed
@@ -137,16 +121,14 @@ class Board:
         self.add_new_tile()
 
 # Lớp Game2048 quản lý giao diện và luồng trò chơi
-class Game2048(GameMode):
+class Game2048:
     def __init__(self, root):
-        super().__init__(root)
-        self._root = root 
+        self._root = root  # Protected attribute
         self._root.title("2048")
         self._root.geometry("400x450")
         self._board = Board()
         self.create_widgets()
         self.update_grid_ui()
-    
 
     def create_widgets(self):
         self._frame = tk.Frame(self._root, bg="#bbada0")
@@ -205,8 +187,6 @@ class Game2048(GameMode):
             self.show_game_over("Chúc mừng! Bạn đã thắng!")
         elif state == 'LOST':
             self.show_game_over("Game Over! Bạn đã thua!")
-    
-
 
     def show_game_over(self, message):
         replay = messagebox.askyesno("2048", f"{message}\nBạn có muốn chơi lại không?")
@@ -218,13 +198,11 @@ class Game2048(GameMode):
             root = tk.Tk()  # Tạo lại cửa sổ root
             menu = ModeSelection(root)  # Gọi lại menu chọn chế độ chơi
             root.mainloop()
-
-
 # Lớp Game2048EasyMode kế thừa từ Game2048, ghi đè phương thức start_game và reset
 class Game2048EasyMode(Game2048):
     def __init__(self, root):
         super().__init__(root)
-        self.start_game() 
+        self.start_game()  # Khởi động trò chơi ngay khi khởi tạo
 
     def create_widgets(self):
         super().create_widgets()
@@ -240,23 +218,58 @@ class Game2048EasyMode(Game2048):
         empty_cells = [(i, j) for i in range(4) for j in range(4)]
         if empty_cells:
             i, j = random.choice(empty_cells)
-            self._board._Board__grid[i][j].set_value(8)  
-        self.update_grid_ui()  
+            self._board._Board__grid[i][j].set_value(8)  # Đặt ô đầu tiên là 8
+        self.update_grid_ui()  # Cập nhật giao diện
+
     def add_new_tile(self):
         empty_cells = [(i, j) for i in range(4) for j in range(4) if self._board.get_grid_values()[i][j] == 0]
         if empty_cells:
             i, j = random.choice(empty_cells)
+            # Chỉ tạo ô mới với giá trị là 8
             self._board._Board__grid[i][j].set_value(8)
 
     # Ghi đè phương thức reset để đảm bảo chỉ tạo ô 8 sau khi chơi lại
     def reset(self):
         self._board._Board__grid = [[Tile() for _ in range(4)] for _ in range(4)]
+        # Đặt một ô đầu tiên với giá trị là 8
         empty_cells = [(i, j) for i in range(4) for j in range(4)]
         if empty_cells:
             i, j = random.choice(empty_cells)
-            self._board._Board__grid[i][j].set_value(8)  
-        self.update_grid_ui() 
+            self._board._Board__grid[i][j].set_value(8)  # Đặt ô đầu tiên là 8
+        self.update_grid_ui()  # Cập nhật giao diện
 
+    def key_pressed(self, event):
+        if event.keysym == 'Up':
+            changed = self._board.move_up()
+        elif event.keysym == 'Down':
+            changed = self._board.move_down()
+        elif event.keysym == 'Left':
+            changed = self._board.move_left()
+        elif event.keysym == 'Right':
+            changed = self._board.move_right()
+        else:
+            return
+
+        if changed:
+            self.add_new_tile()  # Gọi phương thức add_new_tile đã được ghi đè cho chế độ dễ
+            self.update_grid_ui()  # Cập nhật giao diện sau khi thay đổi bảng
+
+        state = self._board.check_state()  # Kiểm tra trạng thái trò chơi
+        if state == 'WON':
+            self.show_game_over("Chúc mừng! Bạn đã thắng!")  # Thông báo thắng
+        elif state == 'LOST':
+            self.show_game_over("Game Over! Bạn đã thua!")  # Thông báo thua
+
+    def show_game_over(self, message):
+        replay = messagebox.askyesno("2048", f"{message}\nBạn có muốn chơi lại không?")
+        if replay:
+            self._board.reset()
+            self.update_grid_ui()
+        else:
+            self._root.destroy()  # Đóng cửa sổ trò chơi hiện tại
+            root = tk.Tk()  # Tạo lại cửa sổ root
+            menu = ModeSelection(root)  # Gọi lại menu chọn chế độ chơi
+            root.mainloop()
 
 class Game2048CompetitionMode(Game2048):
     def __init__(self, root):
@@ -304,8 +317,7 @@ class Game2048CompetitionMode(Game2048):
 
         self.move_counter = 0  # Đặt lại số lần di chuyển về 0
         self.update_move_counter()  # Cập nhật lại giao diện hiển thị số lần di chuyển
-            
-
+       
 class ModeSelection:
     def __init__(self, root):
         self._root = root
