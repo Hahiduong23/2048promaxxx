@@ -1,11 +1,28 @@
 import tkinter as tk
 import random
 from tkinter import messagebox
+from abc import ABC, abstractmethod
 
+class GameMode(ABC):
+    def __init__(self,root):
+        self._root = root
+        self._board = Board()
+    @abstractmethod
+    def key_pressed(self, event):
+        pass
+    def start_game(self):
+        pass
+    def show_game_over(self, message):
+        replay = messagebox.askeysno('2048', f'{message}\n Chơi lại 0?')
+        if replay:
+            self._board.reset()
+            self.update_grid_ui()
+        else:
+            self._root.quit()
 # Lớp Tile đại diện cho từng ô trên bảng
 class Tile:
     def __init__(self, value=0):
-        self.__value = value  # Private attribute
+        self.__value = value 
 
     def set_value(self, value):
         self.__value = value
@@ -16,8 +33,8 @@ class Tile:
 # Lớp Board xử lý các thao tác trên bảng 2048
 class Board:
     def __init__(self):
-        self.__grid = [[Tile() for _ in range(4)] for _ in range(4)]  # Private grid
-        self.__best_score = 0  # Điểm số cao nhất
+        self.__grid = [[Tile() for _ in range(4)] for _ in range(4)]
+        self.__best_score = 0  
         self.add_new_tile()
         self.add_new_tile()
 
@@ -53,7 +70,6 @@ class Board:
                     self.__grid[i][j].set_value(new_value)
                     self.__grid[i][j + 1].set_value(0)
                     changed = True
-                    # Cập nhật best_score nếu ô này có giá trị lớn hơn
                     if new_value > self.__best_score:
                         self.__best_score = new_value
         return changed
@@ -121,14 +137,16 @@ class Board:
         self.add_new_tile()
 
 # Lớp Game2048 quản lý giao diện và luồng trò chơi
-class Game2048:
+class Game2048(GameMode):
     def __init__(self, root):
-        self._root = root  # Protected attribute
+        super().__init__(root)
+        self._root = root 
         self._root.title("2048")
         self._root.geometry("400x450")
         self._board = Board()
         self.create_widgets()
         self.update_grid_ui()
+    
 
     def create_widgets(self):
         self._frame = tk.Frame(self._root, bg="#bbada0")
@@ -187,6 +205,8 @@ class Game2048:
             self.show_game_over("Chúc mừng! Bạn đã thắng!")
         elif state == 'LOST':
             self.show_game_over("Game Over! Bạn đã thua!")
+    
+
 
     def show_game_over(self, message):
         replay = messagebox.askyesno("2048", f"{message}\nBạn có muốn chơi lại không?")
@@ -194,13 +214,17 @@ class Game2048:
             self._board.reset()
             self.update_grid_ui()
         else:
-            self._root.quit()
+            self._root.destroy()  # Đóng cửa sổ trò chơi hiện tại
+            root = tk.Tk()  # Tạo lại cửa sổ root
+            menu = ModeSelection(root)  # Gọi lại menu chọn chế độ chơi
+            root.mainloop()
+
 
 # Lớp Game2048EasyMode kế thừa từ Game2048, ghi đè phương thức start_game và reset
 class Game2048EasyMode(Game2048):
     def __init__(self, root):
         super().__init__(root)
-        self.start_game()  # Khởi động trò chơi ngay khi khởi tạo
+        self.start_game() 
 
     def create_widgets(self):
         super().create_widgets()
@@ -216,27 +240,40 @@ class Game2048EasyMode(Game2048):
         empty_cells = [(i, j) for i in range(4) for j in range(4)]
         if empty_cells:
             i, j = random.choice(empty_cells)
-            self._board._Board__grid[i][j].set_value(8)  # Đặt ô đầu tiên là 8
-        self.update_grid_ui()  # Cập nhật giao diện
-
+            self._board._Board__grid[i][j].set_value(8)  
+        self.update_grid_ui()  
     def add_new_tile(self):
         empty_cells = [(i, j) for i in range(4) for j in range(4) if self._board.get_grid_values()[i][j] == 0]
         if empty_cells:
             i, j = random.choice(empty_cells)
-            # Chỉ tạo ô mới với giá trị là 8
             self._board._Board__grid[i][j].set_value(8)
 
     # Ghi đè phương thức reset để đảm bảo chỉ tạo ô 8 sau khi chơi lại
     def reset(self):
         self._board._Board__grid = [[Tile() for _ in range(4)] for _ in range(4)]
-        # Đặt một ô đầu tiên với giá trị là 8
         empty_cells = [(i, j) for i in range(4) for j in range(4)]
         if empty_cells:
             i, j = random.choice(empty_cells)
-            self._board._Board__grid[i][j].set_value(8)  # Đặt ô đầu tiên là 8
-        self.update_grid_ui()  # Cập nhật giao diện
+            self._board._Board__grid[i][j].set_value(8)  
+        self.update_grid_ui() 
+
+
+class Game2048CompetitionMode(Game2048):
+    def __init__(self, root):
+        super().__init__(root)
+        self.move_counter = 0  # Bắt đầu số lần di chuyển từ 0
+        self.update_move_counter()  
+
+    def create_widgets(self):
+        super().create_widgets()
+        self._move_label = tk.Label(self._root, text="Moves: 0", font=('Arial', 18))
+        self._move_label.pack()
+
+    def update_move_counter(self):
+        self._move_label.config(text=f"Moves: {self.move_counter}")
 
     def key_pressed(self, event):
+        changed = False
         if event.keysym == 'Up':
             changed = self._board.move_up()
         elif event.keysym == 'Down':
@@ -249,81 +286,31 @@ class Game2048EasyMode(Game2048):
             return
 
         if changed:
-            self.add_new_tile()  # Gọi phương thức add_new_tile đã được ghi đè cho chế độ dễ
-            self.update_grid_ui()  # Cập nhật giao diện sau khi thay đổi bảng
+            self._board.add_new_tile()  # Thêm ô mới với giá trị 2
+            self.move_counter += 1  # Tăng số lần di chuyển
+            self.update_move_counter()  
+        self.update_grid_ui() 
 
-        state = self._board.check_state()  # Kiểm tra trạng thái trò chơi
+        # Kiểm tra trạng thái trò chơi
+        state = self._board.check_state()
         if state == 'WON':
-            self.show_game_over("Chúc mừng! Bạn đã thắng!")  # Thông báo thắng
+            self.show_game_over(f"Chúc mừng! Bạn đã thắng với {self.move_counter} nước đi!")
         elif state == 'LOST':
-            self.show_game_over("Game Over! Bạn đã thua!")  # Thông báo thua
+            self.show_game_over(f"Game Over! Bạn đã thua sau {self.move_counter} nước đi!")
 
     def show_game_over(self, message):
-        replay = messagebox.askyesno("2048", f"{message}\nBạn có muốn chơi lại không?")
-        if replay:
-            self.reset()  # Sử dụng phương thức reset ghi đè để tạo lại ô 8
-        else:
-            self._root.quit()
+        # Gọi phương thức show_game_over từ lớp cha
+        super().show_game_over(message)
 
-# Lớp Game2048HardMode kế thừa từ Game2048, giới hạn số lần di chuyển là 200
-class Game2048HardMode(Game2048):
-    def __init__(self, root):
-        super().__init__(root)
-        self.move_counter = 150  # Khởi tạo bộ đếm di chuyển là 200
-        self.update_move_counter()  # Hiển thị số lần di chuyển còn lại
+        self.move_counter = 0  # Đặt lại số lần di chuyển về 0
+        self.update_move_counter()  # Cập nhật lại giao diện hiển thị số lần di chuyển
+            
 
-    def create_widgets(self):
-        super().create_widgets()
-        # Tạo nhãn hiển thị số lần di chuyển còn lại
-        self._move_label = tk.Label(self._root, text="Moves Left: 150", font=('Arial', 18))
-        self._move_label.pack()
-
-    def update_move_counter(self):
-        self._move_label.config(text=f"Moves Left: {self.move_counter}")
-
-    def key_pressed(self, event):
-        if self.move_counter > 0:  # Chỉ cho phép di chuyển khi còn lượt
-            changed = False
-            if event.keysym == 'Up':
-                changed = self._board.move_up()
-            elif event.keysym == 'Down':
-                changed = self._board.move_down()
-            elif event.keysym == 'Left':
-                changed = self._board.move_left()
-            elif event.keysym == 'Right':
-                changed = self._board.move_right()
-            else:
-                return
-
-            if changed:
-                self._board.add_new_tile()  # Thêm ô mới sau khi di chuyển
-                self.move_counter -= 1  # Giảm số lần di chuyển còn lại
-                self.update_move_counter()  # Cập nhật giao diện bộ đếm di chuyển
-            self.update_grid_ui()  # Cập nhật giao diện bảng
-
-            # Kiểm tra trạng thái trò chơi
-            state = self._board.check_state()
-            if state == 'WON':
-                self.show_game_over("Chúc mừng! Bạn đã thắng!")
-            elif state == 'LOST' or self.move_counter == 0:
-                self.show_game_over("Game Over! Bạn đã thua!")
-
-    def show_game_over(self, message):
-        replay = messagebox.askyesno("2048", f"{message}\nBạn có muốn chơi lại không?")
-        if replay:
-            self.move_counter = 150  # Reset lại bộ đếm di chuyển về 200
-            self._board.reset()  # Reset bảng
-            self.update_move_counter()  # Cập nhật bộ đếm di chuyển trên giao diện
-            self.update_grid_ui()  # Cập nhật lại bảng
-        else:
-            self._root.quit()
-
-# Lớp Menu chọn chế độ chơi
 class ModeSelection:
     def __init__(self, root):
         self._root = root
         self._root.title("2048 - Chọn chế độ chơi")
-        self._root.geometry("300x250")  # Tăng chiều cao cửa sổ để thêm nút
+        self._root.geometry("300x250")  
         self.create_widgets()
 
     def create_widgets(self):
@@ -336,8 +323,8 @@ class ModeSelection:
         easy_button = tk.Button(self._root, text="Easy Mode", font=('Arial', 14), command=self.start_easy_mode)
         easy_button.pack(pady=10)
 
-        hard_button = tk.Button(self._root, text="Hard Mode", font=('Arial', 14), command=self.start_hard_mode)
-        hard_button.pack(pady=10)
+        competition_button = tk.Button(self._root, text="Competition Mode", font=('Arial', 14), command=self.start_competition_mode)
+        competition_button.pack(pady=10)
 
     def start_normal_mode(self):
         self._root.destroy()  # Đóng cửa sổ menu
@@ -351,11 +338,12 @@ class ModeSelection:
         game = Game2048EasyMode(root)
         root.mainloop()
 
-    def start_hard_mode(self):
+    def start_competition_mode(self):
         self._root.destroy()  # Đóng cửa sổ menu
         root = tk.Tk()
-        game = Game2048HardMode(root)
+        game = Game2048CompetitionMode(root)  # Sử dụng chế độ mới
         root.mainloop()
+
 # Khởi động menu chọn chế độ chơi
 if __name__ == "__main__":
     root = tk.Tk()
