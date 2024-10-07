@@ -121,6 +121,10 @@ class Board:
         self.add_new_tile()
 
 # Lớp Game2048 quản lý giao diện và luồng trò chơi
+import tkinter as tk
+from tkinter import messagebox
+import random
+
 class Game2048:
     def __init__(self, root):
         self._root = root  # Protected attribute
@@ -191,34 +195,32 @@ class Game2048:
     def show_game_over(self, message):
         replay = messagebox.askyesno("2048", f"{message}\nBạn có muốn chơi lại không?")
         if replay:
-            self._board.reset()
+            if isinstance(self, Game2048EasyMode):
+                self.reset()  # Gọi phương thức reset của chế độ dễ
+            else:
+                self._board.reset()  # Gọi phương thức reset mặc định
             self.update_grid_ui()
         else:
             self._root.destroy()  # Đóng cửa sổ trò chơi hiện tại
             root = tk.Tk()  # Tạo lại cửa sổ root
             menu = ModeSelection(root)  # Gọi lại menu chọn chế độ chơi
             root.mainloop()
-# Lớp Game2048EasyMode kế thừa từ Game2048, ghi đè phương thức start_game và reset
+
 class Game2048EasyMode(Game2048):
     def __init__(self, root):
         super().__init__(root)
         self.start_game()  # Khởi động trò chơi ngay khi khởi tạo
 
-    def create_widgets(self):
-        super().create_widgets()
-
-    def update_grid_ui(self):
-        super().update_grid_ui()
-
-    # Phương thức khởi động trò chơi, chỉ tạo 1 ô có giá trị là 8
+    # Phương thức khởi động trò chơi, tạo 2 ô có giá trị là 8
     def start_game(self):
         # Reset bảng nhưng không thêm bất kỳ ô mới nào sau khi reset
         self._board._Board__grid = [[Tile() for _ in range(4)] for _ in range(4)]
-        # Đặt một ô đầu tiên với giá trị là 8
+        # Đặt hai ô đầu tiên với giá trị là 8
         empty_cells = [(i, j) for i in range(4) for j in range(4)]
-        if empty_cells:
-            i, j = random.choice(empty_cells)
-            self._board._Board__grid[i][j].set_value(8)  # Đặt ô đầu tiên là 8
+        if len(empty_cells) >= 2:
+            first, second = random.sample(empty_cells, 2)
+            self._board._Board__grid[first[0]][first[1]].set_value(8)  # Ô đầu tiên
+            self._board._Board__grid[second[0]][second[1]].set_value(8)  # Ô thứ hai
         self.update_grid_ui()  # Cập nhật giao diện
 
     def add_new_tile(self):
@@ -228,14 +230,16 @@ class Game2048EasyMode(Game2048):
             # Chỉ tạo ô mới với giá trị là 8
             self._board._Board__grid[i][j].set_value(8)
 
-    # Ghi đè phương thức reset để đảm bảo chỉ tạo ô 8 sau khi chơi lại
+    # Ghi đè phương thức reset để đảm bảo chỉ tạo 2 ô 8 sau khi chơi lại
     def reset(self):
+        # Reset bảng nhưng không thêm bất kỳ ô mới nào sau khi reset
         self._board._Board__grid = [[Tile() for _ in range(4)] for _ in range(4)]
-        # Đặt một ô đầu tiên với giá trị là 8
+        # Đặt hai ô đầu tiên với giá trị là 8
         empty_cells = [(i, j) for i in range(4) for j in range(4)]
-        if empty_cells:
-            i, j = random.choice(empty_cells)
-            self._board._Board__grid[i][j].set_value(8)  # Đặt ô đầu tiên là 8
+        if len(empty_cells) >= 2:
+            first, second = random.sample(empty_cells, 2)
+            self._board._Board__grid[first[0]][first[1]].set_value(8)  # Ô đầu tiên
+            self._board._Board__grid[second[0]][second[1]].set_value(8)  # Ô thứ hai
         self.update_grid_ui()  # Cập nhật giao diện
 
     def key_pressed(self, event):
@@ -259,6 +263,8 @@ class Game2048EasyMode(Game2048):
             self.show_game_over("Chúc mừng! Bạn đã thắng!")  # Thông báo thắng
         elif state == 'LOST':
             self.show_game_over("Game Over! Bạn đã thua!")  # Thông báo thua
+
+    
 
 class Game2048CompetitionMode(Game2048):
     def __init__(self, root):
@@ -327,6 +333,9 @@ class ModeSelection:
         competition_button = tk.Button(self._root, text="Competition Mode", font=('Arial', 14), command=self.start_competition_mode)
         competition_button.pack(pady=10)
 
+        exit_button = tk.Button(self._root, text="Exit", font=('Arial', 14), command=self._root.quit)
+        exit_button.pack(pady=10)
+        
     def start_normal_mode(self):
         self._root.destroy()  # Đóng cửa sổ menu
         root = tk.Tk()
@@ -350,3 +359,4 @@ if __name__ == "__main__":
     root = tk.Tk()
     menu = ModeSelection(root)
     root.mainloop()
+
