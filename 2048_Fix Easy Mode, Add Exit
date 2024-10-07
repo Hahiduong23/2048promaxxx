@@ -130,10 +130,6 @@ class Board:
         self.add_new_tile()
 
 # Lớp Game2048 quản lý giao diện và luồng trò chơi
-import tkinter as tk
-from tkinter import messagebox
-import random
-
 class Game2048(GameMode):
     def __init__(self, root):
         self._root = root  # Protected attribute
